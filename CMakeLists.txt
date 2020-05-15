@@ -1,32 +1,33 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.0)
 project(orb_slam2_ros)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:64000000")
+#set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL$<$<CONFIG:Debug>:Debug>")
+SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+set(CMAKE_BUILD_TYPE Release)
 
-IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release)
-ENDIF()
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
 
-# Check for c++11 support
-INCLUDE(CheckCXXCompilerFlag)
+# Check C++11 or C++0x support
+include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-IF(COMPILER_SUPPORTS_CXX11)
-  set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
-ELSE()
-  MESSAGE(ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
-ENDIF()
+CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+SET(DBUILD_SHARED false)
 
-LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/orb_slam2/cmake_modules)
+if(COMPILER_SUPPORTS_CXX11)
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+   add_definitions(-DCOMPILEDWITHC11)
+   message(STATUS "Using flag -std=c++11.")
+elseif(COMPILER_SUPPORTS_CXX0X)
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+   add_definitions(-DCOMPILEDWITHC0X)
+   message(STATUS "Using flag -std=c++0x.")
+#else()
+#   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
 
-find_package (catkin REQUIRED COMPONENTS
-roscpp
-rospy
-std_msgs
-cv_bridge
-image_transport
-tf
-sensor_msgs
-dynamic_reconfigure
-message_generation
-)
+LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
+
 
 find_package(OpenCV 4.0 QUIET)
 if(NOT OpenCV_FOUND)
@@ -39,28 +40,30 @@ if(NOT OpenCV_FOUND)
    endif()
 endif()
 
+
 find_package(Eigen3 3.1.0 REQUIRED)
+find_package(Pangolin REQUIRED)
+#message(STATUS "Compile With map save/load function")
 
+
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs cv_bridge image_transport tf sensor_msgs dynamic_reconfigure message_generation)
 set (DYNAMIC_RECONFIGURE_PATH ros/config/dynamic_reconfigure.cfg)
-execute_process(COMMAND chmod a+x ${DYNAMIC_RECONFIGURE_PATH}
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-        RESULT_VARIABLE cmd_result
-        OUTPUT_VARIABLE cmd_ver)
-message(STATUS "Chmod a+x the dynamic_reconfigure file")
-
 generate_dynamic_reconfigure_options(
         ${DYNAMIC_RECONFIGURE_PATH}
 )
 
+
 set(LIBS_ORBSLAM
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
-${PROJECT_SOURCE_DIR}/orb_slam2/Thirdparty/DBoW2/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/orb_slam2/Thirdparty/g2o/lib/libg2o.so
+${Pangolin_LIBRARIES}
+${CATKIN_DEVEL_PREFIX}/lib/DBoW2.lib
+${CATKIN_DEVEL_PREFIX}/lib/g2o.lib
+
 )
 
 set(LIBS_ROS
-${PROJECT_SOURCE_DIR}/orb_slam2/lib/lib${PROJECT_NAME}.so
+${CATKIN_DEVEL_PREFIX}/lib/${PROJECT_NAME}.lib
 ${OpenCV_LIBS}
 ${catkin_LIBRARIES}
 )
@@ -77,15 +80,18 @@ generate_messages(
 
 catkin_package (
   CATKIN_DEPENDS roscpp rospy std_msgs cv_bridge image_transport tf sensor_msgs dynamic_reconfigure message_runtime
-  LIBRARIES {PROJECT_NAME} libDBoW2 libg2o
+  LIBRARIES {PROJECT_NAME} DBoW2 g2o
 )
+
 
 include_directories(
 ${PROJECT_SOURCE_DIR}/orb_slam2
 ${PROJECT_SOURCE_DIR}/orb_slam2/include
 ${PROJECT_SOURCE_DIR}/ros/include
+${Pangolin_INCLUDE_DIRS}   
 ${EIGEN3_INCLUDE_DIR}
 ${catkin_INCLUDE_DIRS}
+${PROJECT_BINARY_DIR}
 )
 
 include(${PROJECT_SOURCE_DIR}/orb_slam2/Thirdparty/DBoW2/CMakeLists.txt)
@@ -111,20 +117,20 @@ orb_slam2/src/Frame.cc
 orb_slam2/src/KeyFrameDatabase.cc
 orb_slam2/src/Sim3Solver.cc
 orb_slam2/src/Initializer.cc
+orb_slam2/src/Viewer.cc
+orb_slam2/src/MapDrawer.cc
 )
+
 add_dependencies (${PROJECT_NAME} g2o DBoW2)
 
 target_link_libraries(${PROJECT_NAME}
 ${LIBS_ORBSLAM}
 )
 
-# map serialization addition - library boost serialization 
-message(STATUS "Compile With map save/load function")
-find_library(BOOST_SERIALIZATION boost_serialization)
-if (NOT BOOST_SERIALIZATION)
-    message(FATAL_ERROR "Can't find libboost_serialization")
-endif()
-target_link_libraries(${PROJECT_NAME} ${BOOST_SERIALIZATION})
+#set(Boost_USE_STATIC_LIBS        ON)
+find_package(Boost REQUIRED COMPONENTS serialization)
+target_link_libraries(${PROJECT_NAME} Boost::serialization)
+
 
 add_executable (${PROJECT_NAME}_mono
 ros/src/MonoNode.cc
@@ -133,53 +139,32 @@ ros/src/Node.cc
 add_dependencies (${PROJECT_NAME}_mono ${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
 target_link_libraries(${PROJECT_NAME}_mono
+${LIBS_ORBSLAM}
 ${LIBS_ROS}
 )
-
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/ros/STEREO)
 add_executable (${PROJECT_NAME}_stereo
+ros/include/StereoNode.h
 ros/src/StereoNode.cc
+ros/include/Node.h
 ros/src/Node.cc
 )
 add_dependencies (${PROJECT_NAME}_stereo ${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
 target_link_libraries(${PROJECT_NAME}_stereo
+${LIBS_ORBSLAM}
 ${LIBS_ROS}
 )
-
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/ros/RGB-D)
 add_executable (${PROJECT_NAME}_rgbd
+ros/include/RGBDNode.h
 ros/src/RGBDNode.cc
+ros/include/Node.h
 ros/src/Node.cc
 )
 add_dependencies (${PROJECT_NAME}_rgbd ${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
 target_link_libraries(${PROJECT_NAME}_rgbd
+${PROJECT_NAME}
 ${LIBS_ROS}
-)
-
-install(TARGETS ${PROJECT_NAME}_mono ${PROJECT_NAME}_stereo ${PROJECT_NAME}_rgbd
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(TARGETS ${PROJECT_NAME} DBoW2 g2o
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(DIRECTORY ros/launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/ros/launch
-)
-
-install(DIRECTORY ros/config/
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/ros/config
-)
-
-install(DIRECTORY orb_slam2/config/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/orb_slam2/config
-)
-
-install(DIRECTORY orb_slam2/Vocabulary/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/orb_slam2/Vocabulary
 )

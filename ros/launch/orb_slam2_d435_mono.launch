@@ -45,5 +45,21 @@
       <param name="camera_p1" type="double" value="0.0" />
       <param name="camera_p2" type="double" value="0.0" />
       <param name="camera_k3" type="double" value="0.0" />
+
+       <!-- Viewer parameters -->
+      <param name="/Viewer/width" type="double" value="640" />
+      <param name="/Viewer/height" type="double" value="480" />
+      <param name="/Viewer/keyFrameSize" type="double" value="0.05" />
+      <param name="/Viewer/keyFrameLineWidth" type="double" value="1" />
+      <param name="/Viewer/graphLineWidth" type="double" value="0.9" />
+      <param name="/Viewer/pointSize" type="double" value="2" />
+      <param name="/Viewer/cameraSize" type="double" value="0.08" />
+      <param name="/Viewer/cameraLineWidth" type="double" value="3" />
+      <param name="/Viewer/viewpointX" type="double" value="0" />
+      <param name="/Viewer/viewpointY" type="double" value="-0.7" />
+      <param name="/Viewer/viewpointZ" type="double" value="-1.8" />
+      <param name="/Viewer/viewpointF" type="double" value="500" />
+
+
   </node>
 </launch>

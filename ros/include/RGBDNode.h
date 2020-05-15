@@ -18,8 +18,8 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ORBSLAM2_ROS_RGBDODE_H_
-#define ORBSLAM2_ROS_RGBDODE_H_
+#ifndef ORBSLAM2_ROS_RGBNODE_H_
+#define ORBSLAM2_ROS_RGBNODE_H_
 
 #include <iostream>
 #include <algorithm>
@@ -54,4 +54,4 @@ class RGBDNode : public Node
     message_filters::Synchronizer<sync_pol> *sync_;
 };
 
-#endif //ORBSLAM2_ROS_RGBDODE_H_
+#endif //ORBSLAM2_ROS_RGBNODE_H_

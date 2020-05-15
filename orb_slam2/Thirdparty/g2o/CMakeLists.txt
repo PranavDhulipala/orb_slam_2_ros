@@ -1,7 +1,8 @@
 set (g2o_SOURCE_DIR "${PROJECT_SOURCE_DIR}/orb_slam2/Thirdparty/g2o")
-
-SET (G2O_LIB_TYPE SHARED)
-
+SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+SET (G2O_LIB_TYPE STATIC)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 # There seems to be an issue with MSVC8
 # see http://eigen.tuxfamily.org/bz/show_bug.cgi?id=83
 if(MSVC90)
@@ -17,7 +18,7 @@ FIND_PACKAGE(OpenMP)
 SET(G2O_USE_OPENMP OFF CACHE BOOL "Build g2o with OpenMP support (EXPERIMENTAL)")
 IF(OPENMP_FOUND AND G2O_USE_OPENMP)
   SET (G2O_OPENMP 1)
-  SET(g2o_C_FLAGS "${g2o_C_FLAGS} ${OpenMP_C_FLAGS}")
+  SET(g2o_C_FLAGS "${g2o_C_FLAGS} $ {OpenMP_C_FLAGS}")
   SET(g2o_CXX_FLAGS "${g2o_CXX_FLAGS} -DEIGEN_DONT_PARALLELIZE ${OpenMP_CXX_FLAGS}")
   MESSAGE(STATUS "Compiling with OpenMP support")
 ENDIF(OPENMP_FOUND AND G2O_USE_OPENMP)
@@ -27,7 +28,8 @@ INCLUDE_DIRECTORIES(
 ${g2o_SOURCE_DIR}/g2o/core
 ${g2o_SOURCE_DIR}/g2o/types
 ${g2o_SOURCE_DIR}/g2o/stuff
-${G2O_EIGEN3_INCLUDE})
+${G2O_EIGEN3_INCLUDE}
+)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${g2o_SOURCE_DIR}/lib)
 
@@ -118,3 +120,7 @@ ${g2o_SOURCE_DIR}/g2o/stuff/string_tools.cpp
 ${g2o_SOURCE_DIR}/g2o/stuff/property.cpp
 ${g2o_SOURCE_DIR}/g2o/stuff/property.h
 )
+include(GenerateExportHeader)
+generate_export_header(g2o)
+target_include_directories(g2o PUBLIC
+                           ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR})

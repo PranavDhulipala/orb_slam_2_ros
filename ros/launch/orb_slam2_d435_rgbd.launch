@@ -20,7 +20,7 @@
        <param name="min_num_kf_in_map" type="int" value="5" />
 
        <!-- ORB parameters -->
-       <param name="/ORBextractor/nFeatures" type="int" value="1000" />
+       <param name="/ORBextractor/nFeatures" type="int" value="2000" />
        <param name="/ORBextractor/scaleFactor" type="double" value="1.2" />
        <param name="/ORBextractor/nLevels" type="int" value="8" />
        <param name="/ORBextractor/iniThFAST" type="int" value="20" />
@@ -40,18 +40,34 @@
         <!--If the node should wait for a camera_info topic to take the camera calibration data-->
        <param name="load_calibration_from_cam" type="bool" value="false" />
        <!-- Camera calibration and distortion parameters (OpenCV) -->
-      <param name="camera_fx" type="double" value="615.6707153320312" />
-      <param name="camera_fy" type="double" value="615.962158203125" />
-      <param name="camera_cx" type="double" value="328.0010681152344" />
-      <param name="camera_cy" type="double" value="241.31031799316406" />
+       <param name="camera_fx" type="double" value="615.6707153320312" />
+       <param name="camera_fy" type="double" value="615.962158203125" />
+       <param name="camera_cx" type="double" value="328.0010681152344" />
+       <param name="camera_cy" type="double" value="241.31031799316406" />
+
        <!-- Camera calibration and distortion parameters (OpenCV) -->
-      <param name="camera_k1" type="double" value="0.0" />
-      <param name="camera_k2" type="double" value="0.0" />
-      <param name="camera_p1" type="double" value="0.0" />
-      <param name="camera_p2" type="double" value="0.0" />
-      <param name="camera_k3" type="double" value="0.0" />
-      <!-- IR projector baseline times fx (aprox.) -->
-      <param name="camera_baseline" type="double" value="9.052" />
+       <param name="camera_k1" type="double" value="0.0" />
+       <param name="camera_k2" type="double" value="0.0" />
+       <param name="camera_p1" type="double" value="0.0" />
+       <param name="camera_p2" type="double" value="0.0" />
+       <param name="camera_k3" type="double" value="0.0" />
+       <!-- IR projector baseline times fx (aprox.) -->
+       <param name="camera_baseline" type="double" value="9.052" />
+      
+       <!-- Viewer parameters -->
+       <param name="/Viewer/width" type="double" value="640" />
+       <param name="/Viewer/height" type="double" value="480" />
+       <param name="/Viewer/keyFrameSize" type="double" value="0.5" />
+       <param name="/Viewer/keyFrameLineWidth" type="double" value="1" />
+       <param name="/Viewer/graphLineWidth" type="double" value="0.9" />
+       <param name="/Viewer/pointSize" type="double" value="0.2" />
+       <param name="/Viewer/cameraSize" type="double" value="0.08" />
+       <param name="/Viewer/cameraLineWidth" type="double" value="3" />
+       <param name="/Viewer/viewpointX" type="double" value="0" />
+       <param name="/Viewer/viewpointY" type="double" value="-0.7" />
+       <param name="/Viewer/viewpointZ" type="double" value="-1.8" />
+       <param name="/Viewer/viewpointF" type="double" value="500" />
+
 
   </node>
 </launch>

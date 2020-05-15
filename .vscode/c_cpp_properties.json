@@ -1,0 +1,17 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "",
+        "limitSymbolsToIncludedHeaders": true
+      },
+      "includePath": [
+        "C:\\catkin_ws\\devel\\include\\**",
+        "C:\\opt\\ros\\melodic\\x64\\include\\**",
+        "C:\\opt\\rosdeps\\x64\\include\\**",
+        "C:\\opt\\vcpkg\\installed\\x64-windows\\include\\**"
+      ],
+      "name": "ROS"
+    }
+  ]
+}

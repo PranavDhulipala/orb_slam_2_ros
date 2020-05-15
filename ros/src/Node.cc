@@ -227,7 +227,7 @@ void Node::LoadOrbParameters (ORB_SLAM2::ORBParameters& parameters) {
   node_handle_.param(name_of_node_ + "/ORBextractor/iniThFAST", parameters.iniThFAST, 20);
   node_handle_.param(name_of_node_ + "/ORBextractor/minThFAST", parameters.minThFAST, 7);
 
-  bool load_calibration_from_cam = false;
+  bool load_calibration_from_cam = true;
   node_handle_.param(name_of_node_ + "/load_calibration_from_cam", load_calibration_from_cam, false);
 
   if (sensor_== ORB_SLAM2::System::STEREO || sensor_==ORB_SLAM2::System::RGBD) {
@@ -276,4 +276,17 @@ void Node::LoadOrbParameters (ORB_SLAM2::ORBParameters& parameters) {
     ROS_ERROR ("Failed to get camera calibration parameters from the launch file.");
     throw std::runtime_error("No cam calibration");
   }
+  node_handle_.param(name_of_node_ + "/Viewer/width", parameters.width, static_cast<float>(640));
+  node_handle_.param(name_of_node_ + "/Viewer/height", parameters.height, static_cast<float>(480));
+  // node_handle_.param(name_of_node_ + "/Viewer/keyFrameSize", parameters.keyFrameSize, static_cast<float>(0.05));
+  // node_handle_.param(name_of_node_ + "/Viewer/keyFrameLineWidth", parameters.keyFrameLineWidth, static_cast<float>(1));
+  // node_handle_.param(name_of_node_ + "/Viewer/graphLineWidth", parameters.graphLineWidth, static_cast<float>(0.9));
+  // node_handle_.param(name_of_node_ + "/Viewer/pointSize", parameters.pointSize, static_cast<float>(2));
+  // node_handle_.param(name_of_node_ + "/Viewer/cameraSize", parameters.cameraSize, static_cast<float>(0.08));
+  // node_handle_.param(name_of_node_ + "/Viewer/cameraLineWidth", parameters.cameraLineWidth, static_cast<float>(3));
+  node_handle_.param(name_of_node_ + "/Viewer/viewpointX", parameters.viewpointX, static_cast<float>(0));
+  node_handle_.param(name_of_node_ + "/Viewer/viewpointY", parameters.viewpointY, static_cast<float>(-0.7));
+  node_handle_.param(name_of_node_ + "/Viewer/viewpointZ", parameters.viewpointZ, static_cast<float>(-1.8));
+  node_handle_.param(name_of_node_ + "/Viewer/viewpointF", parameters.viewpointF, static_cast<float>(500));
+
 }

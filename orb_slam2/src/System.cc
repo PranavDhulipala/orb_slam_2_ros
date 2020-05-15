@@ -23,16 +23,15 @@
 #include "System.h"
 #include "Converter.h"
 #include <thread>
+#include <pangolin/pangolin.h>
 #include <iomanip>
+
 
 namespace ORB_SLAM2
 {
 
-System::System(const string strVocFile, const eSensor sensor, ORBParameters& parameters,
-               const std::string & map_file, bool load_map): // map serialization addition
-               mSensor(sensor), mbReset(false),mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false),
-               map_file(map_file), load_map(load_map)
-{
+System::System(const string &strVocFile, const eSensor sensor, ORBParameters& parameters,  const std::string & map_file, bool load_map, const bool bUseViewer): mSensor(sensor), mbReset(false),mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false),
+               map_file(map_file), load_map(load_map), mpViewer(static_cast<Viewer*>(NULL)){
     // Output welcome message
     cout << endl <<
     "ORB-SLAM2 Copyright (C) 2014-2016 Raul Mur-Artal, University of Zaragoza." << endl <<
@@ -44,7 +43,6 @@ System::System(const string strVocFile, const eSensor sensor, ORBParameters& par
     cout << "Major version : " << CV_MAJOR_VERSION << endl;
     cout << "Minor version : " << CV_MINOR_VERSION << endl;
     cout << "Subminor version : " << CV_SUBMINOR_VERSION << endl;
-
     cout << "Input sensor was set to: ";
 
     if(mSensor==MONOCULAR)
@@ -54,12 +52,13 @@ System::System(const string strVocFile, const eSensor sensor, ORBParameters& par
     else if(mSensor==RGBD)
         cout << "RGB-D" << endl;
 
+
+
     //Load ORB Vocabulary
-    cout << endl << "Loading ORB Vocabulary." << endl;
+    cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
 
     mpVocabulary = new ORBVocabulary();
-
-    //try to load from the binary file
+ //try to load from the binary file
     bool bVocLoad = mpVocabulary->loadFromBinFile(strVocFile+".bin");
 
     if(!bVocLoad)
@@ -85,20 +84,22 @@ System::System(const string strVocFile, const eSensor sensor, ORBParameters& par
     if (load_map && LoadMap(map_file)) {
         std::cout << "Using loaded map with " << mpMap->MapPointsInMap() << " points\n" << std::endl;
     }
-    else {
-        //Create KeyFrame Database
-        mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
-        //Create the Map
-        mpMap = new Map();
+    else {    
+    //Create KeyFrame Database
+    mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
+
+    //Create the Map
+    mpMap = new Map();
     }
     // end map serialization addition
 
     //Create Drawers. These are used by the Viewer
     mpFrameDrawer = new FrameDrawer(mpMap);
+    mpMapDrawer = new MapDrawer(mpMap, parameters);
 
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
-    mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer,
+    mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer, mpMapDrawer,
                              mpMap, mpKeyFrameDatabase, mSensor, parameters);
 
     //Initialize the Local Mapping thread and launch
@@ -109,6 +110,14 @@ System::System(const string strVocFile, const eSensor sensor, ORBParameters& par
     mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabulary, mSensor!=MONOCULAR);
     mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
 
+    //Initialize the Viewer thread and launch
+    if(bUseViewer)
+    {
+        mpViewer = new Viewer(this, mpFrameDrawer, mpMapDrawer, mpTracker, parameters);
+        mptViewer = new thread(&Viewer::Run, mpViewer);
+        mpTracker->SetViewer(mpViewer);
+    }
+
     //Set pointers between threads
     mpTracker->SetLocalMapper(mpLocalMapper);
     mpTracker->SetLoopClosing(mpLoopCloser);
@@ -118,7 +127,6 @@ System::System(const string strVocFile, const eSensor sensor, ORBParameters& par
 
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
-
     currently_localizing_only_ = false;
 }
 
@@ -128,7 +136,7 @@ void System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const do
     {
         cerr << "ERROR: you called TrackStereo but input sensor was not set to STEREO." << endl;
         exit(-1);
-    }
+    }   
 
     // Check mode change
     {
@@ -179,7 +187,7 @@ void System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double 
     {
         cerr << "ERROR: you called TrackRGBD but input sensor was not set to RGBD." << endl;
         exit(-1);
-    }
+    }    
 
     // Check mode change
     {
@@ -276,6 +284,7 @@ void System::TrackMonocular(const cv::Mat &im, const double &timestamp)
     current_position_ = Tcw;
 }
 
+
 bool System::MapChanged()
 {
     static int n=0;
@@ -299,12 +308,21 @@ void System::Shutdown()
 {
     mpLocalMapper->RequestFinish();
     mpLoopCloser->RequestFinish();
+    if(mpViewer)
+    {
+        mpViewer->RequestFinish();
+        while(!mpViewer->isFinished())
+            std::this_thread::sleep_for(std::chrono::microseconds(5000));
+    }
 
     // Wait until all thread have effectively stopped
     while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
     {
         std::this_thread::sleep_for(std::chrono::microseconds(5000));
     }
+
+    if(mpViewer)
+        pangolin::BindToContext("ORB-SLAM2: Map Viewer");
 }
 
 void System::SaveTrajectoryTUM(const string &filename)
@@ -316,7 +334,7 @@ void System::SaveTrajectoryTUM(const string &filename)
         return;
     }
 
-    vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+    std::vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
     sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
 
     // Transform all keyframes so that the first keyframe is at the origin.
@@ -359,7 +377,7 @@ void System::SaveTrajectoryTUM(const string &filename)
         cv::Mat Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
         cv::Mat twc = -Rwc*Tcw.rowRange(0,3).col(3);
 
-        vector<float> q = Converter::toQuaternion(Rwc);
+        std::vector<float> q = Converter::toQuaternion(Rwc);
 
         f << setprecision(6) << *lT << " " <<  setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
     }
@@ -372,7 +390,7 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
 {
     cout << endl << "Saving keyframe trajectory to " << filename << " ..." << endl;
 
-    vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+    std::vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
     sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
 
     // Transform all keyframes so that the first keyframe is at the origin.
@@ -393,7 +411,7 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
             continue;
 
         cv::Mat R = pKF->GetRotation().t();
-        vector<float> q = Converter::toQuaternion(R);
+        std::vector<float> q = Converter::toQuaternion(R);
         cv::Mat t = pKF->GetCameraCenter();
         f << setprecision(6) << pKF->mTimeStamp << setprecision(7) << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
           << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
@@ -413,7 +431,7 @@ void System::SaveTrajectoryKITTI(const string &filename)
         return;
     }
 
-    vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+    std::vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
     sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
 
     // Transform all keyframes so that the first keyframe is at the origin.
@@ -473,13 +491,13 @@ int System::GetTrackingState()
     return mTrackingState;
 }
 
-vector<MapPoint*> System::GetTrackedMapPoints()
+std::vector<MapPoint*> System::GetTrackedMapPoints()
 {
     unique_lock<mutex> lock(mMutexState);
     return mTrackedMapPoints;
 }
 
-vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
+std::vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
 {
     unique_lock<mutex> lock(mMutexState);
     return mTrackedKeyPointsUn;
@@ -492,49 +510,6 @@ cv::Mat System::DrawCurrentFrame () {
 std::vector<MapPoint*> System::GetAllMapPoints() {
   return mpMap->GetAllMapPoints();
 }
-
-
-bool System::SetCallStackSize (const rlim_t kNewStackSize) {
-    struct rlimit rlimit;
-    int operation_result;
-
-    operation_result = getrlimit(RLIMIT_STACK, &rlimit);
-    if (operation_result != 0) {
-        std::cerr << "Error getting the call stack struct" << std::endl;
-        return false;
-    }
-
-    if (kNewStackSize > rlimit.rlim_max) {
-        std::cerr << "Requested call stack size too large" << std::endl;
-        return false;
-    }
-
-    if (rlimit.rlim_cur <= kNewStackSize) {
-        rlimit.rlim_cur = kNewStackSize;
-        operation_result = setrlimit(RLIMIT_STACK, &rlimit);
-        if (operation_result != 0) {
-            std::cerr << "Setrlimit returned result: " << operation_result << std::endl;
-            return false;
-        }
-        return true;
-    }
-    return false;
-}
-
-
-rlim_t System::GetCurrentCallStackSize () {
-    struct rlimit rlimit;
-    int operation_result;
-
-    operation_result = getrlimit(RLIMIT_STACK, &rlimit);
-    if (operation_result != 0) {
-        std::cerr << "Error getting the call stack struct" << std::endl;
-        return 16 * 1024L * 1024L; //default
-    }
-
-    return rlimit.rlim_cur;
-}
-
 
 void System::ActivateLocalizationMode()
 {
@@ -559,10 +534,42 @@ void System::EnableLocalizationOnly (bool localize_only) {
       DeactivateLocalizationMode();
     }
   }
-
+  
   std::cout << "Enable localization only: " << (localize_only?"true":"false") << std::endl;
 }
 
+void System::SaveMap()
+{
+    if (mTrackingState == 3 || mTrackingState == 2)
+    {
+        cout << "Pause the local mapper to save a map" << endl;
+        mpLocalMapper->RequestStop();
+        while (!mpLocalMapper->isStopped())
+        {
+            std::this_thread::sleep_for(std::chrono::microseconds(5000));
+        }
+        
+        string filename = to_string(time(0)) + ".bin";
+
+        std::ofstream out(filename, std::ios_base::binary);
+        if (!out)
+        {
+            cerr << "Cannot Write to Mapfile: " << filename << std::endl;
+            exit(-1);
+        }
+        cout << "Saving Mapfile: " << filename << std::flush;
+        boost::archive::binary_oarchive oa(out, boost::archive::no_header);
+        oa << mpMap;
+        oa << mpKeyFrameDatabase;
+        cout << " ... done" << std::endl;
+        out.close();
+        mpLocalMapper->Release();
+    }
+    else
+    {
+        cout << "ORB-SLAM not initialised. Map not saved." << endl;
+    }
+}
 
 // map serialization addition
 bool System::SaveMap(const string &filename) {
@@ -572,15 +579,7 @@ bool System::SaveMap(const string &filename) {
         std::cerr << "cannot write to map file: " << map_file << std::endl;
         return false;
     }
-
-    const rlim_t kNewStackSize = 64L * 1024L * 1024L;   // min stack size = 64 Mb
-    const rlim_t kDefaultCallStackSize = GetCurrentCallStackSize();
-    if (!SetCallStackSize(kNewStackSize)) {
-        std::cerr << "Error changing the call stack size; Aborting" << std::endl;
-        return false;
-    }
-
-    try {
+       try {
         std::cout << "saving map file: " << map_file << std::flush;
         boost::archive::binary_oarchive oa(out, boost::archive::no_header);
         oa << mpMap;
@@ -589,16 +588,12 @@ bool System::SaveMap(const string &filename) {
         out.close();
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
-        SetCallStackSize(kDefaultCallStackSize);
-        return false;
+                return false;
     } catch (...) {
         std::cerr << "Unknows exeption" << std::endl;
-        SetCallStackSize(kDefaultCallStackSize);
-        return false;
+                return false;
     }
-
-    SetCallStackSize(kDefaultCallStackSize);
-    return true;
+        return true;
 }
 
 bool System::LoadMap(const string &filename) {
@@ -609,14 +604,6 @@ bool System::LoadMap(const string &filename) {
         cerr << "Cannot open map file: " << map_file << " , you need create it first!" << std::endl;
         return false;
     }
-
-    const rlim_t kNewStackSize = 64L * 1024L * 1024L;   // min stack size = 64 Mb
-    const rlim_t kDefaultCallStackSize = GetCurrentCallStackSize();
-    if (!SetCallStackSize(kNewStackSize)) {
-        std::cerr << "Error changing the call stack size; Aborting" << std::endl;
-        return false;
-    }
-
     std::cout << "Loading map file: " << map_file << std::flush;
     boost::archive::binary_iarchive ia(in, boost::archive::no_header);
     ia >> mpMap;
@@ -624,8 +611,8 @@ bool System::LoadMap(const string &filename) {
     mpKeyFrameDatabase->SetORBvocabulary(mpVocabulary);
     std::cout << " ... done" << std::endl;
 
-    std::cout << "Map reconstructing" << flush;
-    vector<ORB_SLAM2::KeyFrame*> vpKFS = mpMap->GetAllKeyFrames();
+    std::cout << "Map reconstructing" << std::flush;
+    std::vector<ORB_SLAM2::KeyFrame*> vpKFS = mpMap->GetAllKeyFrames();
     unsigned long mnFrameId = 0;
     for (auto it:vpKFS) {
 
@@ -642,9 +629,10 @@ bool System::LoadMap(const string &filename) {
     std::cout << " ... done" << std::endl;
     in.close();
 
-    SetCallStackSize(kDefaultCallStackSize);
-    
     return true;
 }
+
+
+
 
 } //namespace ORB_SLAM
