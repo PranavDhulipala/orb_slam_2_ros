@@ -23,9 +23,8 @@
 
 #include "MapPoint.h"
 #include "KeyFrame.h"
-#include "BoostArchiver.h"
-
 #include <set>
+
 #include <mutex>
 
 
@@ -35,18 +34,6 @@ namespace ORB_SLAM2
 
 class MapPoint;
 class KeyFrame;
-struct ORBParameters{
-    // general parameters for the ORB detector
-    int maxFrames, nFeatures, nLevels, iniThFAST, minThFAST;
-    bool RGB;
-    float scaleFactor, depthMapFactor, thDepth;
-    // camera parameters
-    float fx, fy, cx, cy, baseline, width, height;
-    float k1, k2, p1, p2, k3;
-    // viewer parameters
-    float keyFrameSize, keyFrameLineWidth, graphLineWidth, pointSize, cameraSize;
-    float cameraLineWidth, viewpointX, viewpointY, viewpointZ, viewpointF;
-};
 
 class Map
 {
@@ -91,13 +78,6 @@ protected:
     int mnBigChangeIdx;
 
     std::mutex mMutexMap;
-
-// map serialization addition
-private:
-    // serialize is recommended to be private
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive &ar, const unsigned int version);
 };
 
 } //namespace ORB_SLAM

@@ -1,5 +1,5 @@
 set (dbow2_ROOR_DIR "${PROJECT_SOURCE_DIR}/orb_slam2/Thirdparty/DBoW2")
-SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
 set(HDRS_DBOW2
   ${dbow2_ROOR_DIR}/DBoW2/BowVector.h
   ${dbow2_ROOR_DIR}/DBoW2/FORB.h
@@ -20,7 +20,9 @@ set(SRCS_DUTILS
   ${dbow2_ROOR_DIR}/DUtils/Random.cpp
   ${dbow2_ROOR_DIR}/DUtils/Timestamp.cpp)
 
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${dbow2_ROOR_DIR}/lib)
+SET(DBUILD_SHARED false)
+set(DBoW2_LIBRARY_OUTPUT_DIRECTORY ${dbow2_ROOR_DIR}/lib)
 
+include_directories(${HDRS_DBOW2} ${HDRS_DUTILS})
 add_library(DBoW2 STATIC ${SRCS_DBOW2} ${SRCS_DUTILS})
 target_link_libraries(DBoW2 ${OpenCV_LIBS})

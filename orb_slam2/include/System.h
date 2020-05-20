@@ -25,7 +25,6 @@
 
 #include<string>
 #include<thread>
-#include <io.h>
 #include<opencv2/core/core.hpp>
 
 #include "Tracking.h"
@@ -38,6 +37,11 @@
 #include "ORBVocabulary.h"
 #include "Viewer.h"
 
+
+// From http://stackoverflow.com/questions/5801813/c-usleep-is-obsolete-workarounds-for-windows-mingw
+void usleep(__int64 usec);
+
+
 namespace ORB_SLAM2
 {
 
@@ -48,7 +52,6 @@ class Tracking;
 class LocalMapping;
 class LoopClosing;
 
-struct ORBParameters;
 class System
 {
 public:
@@ -62,9 +65,9 @@ public:
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const eSensor sensor, ORBParameters& parameters, const std::string & map_file = "", bool load_map = false, const bool bUseViewer = true); // map serialization addition
+    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
 
-    // Process the given stereo frame. Images must be synchronized and rectified.
+    // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
     // Returns the camera pose (empty if tracking fails).
     void TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp);
@@ -75,10 +78,15 @@ public:
     // Returns the camera pose (empty if tracking fails).
     void TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp);
 
-    // Process the given monocular frame
+    // Proccess the given monocular frame
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
     // Returns the camera pose (empty if tracking fails).
     void TrackMonocular(const cv::Mat &im, const double &timestamp);
+
+    // This stops local mapping thread (map building) and performs only camera tracking.
+    void ActivateLocalizationMode();
+    // This resumes local mapping thread and performs SLAM again.
+    void DeactivateLocalizationMode();
 
     // Returns true if there have been a big map change (loop closure, global BA)
     // since last call to this function
@@ -118,10 +126,6 @@ public:
     // LoadMap(const string &filename);
     void SetMinimumKeyFrames (int min_num_kf);
 
-    void SaveMap();
-    
-    bool SaveMap(const string &filename);
-
     cv::Mat GetCurrentPosition ();
     // Information from most recent processed frame
     // You can call this right after TrackMonocular (or stereo or RGBD)
@@ -132,22 +136,9 @@ public:
     cv::Mat DrawCurrentFrame ();
 
     std::vector<MapPoint*> GetAllMapPoints();
-
-
-    void ActivateLocalizationMode();
-
-    // This resumes local mapping thread and performs SLAM again.
-    void DeactivateLocalizationMode();
-
 private:
 
-    bool LoadMap(const string &filename);
-
     bool currently_localizing_only_;
-
-    bool load_map;
-
-    std::string map_file;
 
     // Input sensor
     eSensor mSensor;

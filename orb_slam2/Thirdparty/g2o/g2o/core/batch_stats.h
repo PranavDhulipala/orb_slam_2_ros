@@ -29,7 +29,6 @@
 
 #include <iostream>
 #include <vector>
-#include "g2o_export.h"
 
 
 namespace g2o {
@@ -37,7 +36,7 @@ namespace g2o {
   /**
    * \brief statistics about the optimization
    */
-  struct G2O_EXPORT G2OBatchStatistics {
+  struct  G2OBatchStatistics {
     G2OBatchStatistics();
     int iteration;                    ///< which iteration
     int numVertices;                  ///< how many vertices are involved
@@ -72,7 +71,8 @@ namespace g2o {
 
     static G2OBatchStatistics* globalStats() {return _globalStats;}
     static void setGlobalStats(G2OBatchStatistics* b);
-    static  G2OBatchStatistics* _globalStats;
+    protected:
+    static G2OBatchStatistics* _globalStats;
   };
 
    std::ostream& operator<<(std::ostream&, const G2OBatchStatistics&);

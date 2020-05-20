@@ -1,8 +1,21 @@
-set (g2o_SOURCE_DIR "${PROJECT_SOURCE_DIR}/orb_slam2/Thirdparty/g2o")
-SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+set (g2o_SOURCE_DIR ${PROJECT_SOURCE_DIR}/orb_slam2/Thirdparty/g2o)
+message(STATUS: " project - ${PROJECT_SOURCE_DIR} and g2o -- ${g2o_SOURCE_DIR}")
+SET(CMAKE_LEGACY_CYGWIN_WIN32 0)
+
+SET(g2o_C_FLAGS)
+SET(g2o_CXX_FLAGS)
+
+
+# default built type
+IF(NOT CMAKE_BUILD_TYPE)
+  SET(CMAKE_BUILD_TYPE Release)
+ENDIF()
+
+MESSAGE(STATUS "BUILD TYPE:" ${CMAKE_BUILD_TYPE})
+
 SET (G2O_LIB_TYPE STATIC)
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+SET(DBUILD_SHARED false)
+
 # There seems to be an issue with MSVC8
 # see http://eigen.tuxfamily.org/bz/show_bug.cgi?id=83
 if(MSVC90)
@@ -10,26 +23,47 @@ if(MSVC90)
   message(STATUS "Disabling memory alignment for MSVC8")
 endif(MSVC90)
 
-SET(g2o_LIBRARY_OUTPUT_DIRECTORY ${g2o_SOURCE_DIR}/lib CACHE PATH "Target for the libraries")
+# Set the output directory for the build executables and libraries
+IF(WIN32)
+  SET(g2o_LIBRARY_OUTPUT_DIRECTORY ${g2o_SOURCE_DIR}/lib CACHE PATH "Target for the libraries")
+ELSE(WIN32)
+  SET(g2o_LIBRARY_OUTPUT_DIRECTORY ${g2o_SOURCE_DIR}/lib CACHE PATH "Target for the libraries")
+ENDIF(WIN32)
 
-# Eigen library parallelize itself, though, presumably due to performance issues
+
+# Set search directory for looking for our custom CMake scripts to
+# look for SuiteSparse, QGLViewer, and Eigen3.
+LIST(APPEND CMAKE_MODULE_PATH ${g2o_SOURCE_DIR}/cmake_modules)
+
+# Eigen library parallelise itself, though, presumably due to performance issues
 # OPENMP is experimental. We experienced some slowdown with it
 FIND_PACKAGE(OpenMP)
 SET(G2O_USE_OPENMP OFF CACHE BOOL "Build g2o with OpenMP support (EXPERIMENTAL)")
 IF(OPENMP_FOUND AND G2O_USE_OPENMP)
   SET (G2O_OPENMP 1)
-  SET(g2o_C_FLAGS "${g2o_C_FLAGS} $ {OpenMP_C_FLAGS}")
+  SET(g2o_C_FLAGS "${g2o_C_FLAGS} ${OpenMP_C_FLAGS}")
   SET(g2o_CXX_FLAGS "${g2o_CXX_FLAGS} -DEIGEN_DONT_PARALLELIZE ${OpenMP_CXX_FLAGS}")
   MESSAGE(STATUS "Compiling with OpenMP support")
 ENDIF(OPENMP_FOUND AND G2O_USE_OPENMP)
+
+
+# Find Eigen3
+SET(EIGEN3_INCLUDE_DIR ${G2O_EIGEN3_INCLUDE})
+FIND_PACKAGE(Eigen3 3.1.0 REQUIRED)
+IF(EIGEN3_FOUND)
+  SET(G2O_EIGEN3_INCLUDE ${EIGEN3_INCLUDE_DIR} CACHE PATH "Directory of Eigen3")
+ELSE(EIGEN3_FOUND)
+  SET(G2O_EIGEN3_INCLUDE "" CACHE PATH "Directory of Eigen3")
+ENDIF(EIGEN3_FOUND)
+
+# Generate config.h
 
 # Set up the top-level include directories
 INCLUDE_DIRECTORIES(
 ${g2o_SOURCE_DIR}/g2o/core
 ${g2o_SOURCE_DIR}/g2o/types
 ${g2o_SOURCE_DIR}/g2o/stuff
-${G2O_EIGEN3_INCLUDE}
-)
+${G2O_EIGEN3_INCLUDE})
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${g2o_SOURCE_DIR}/lib)
 
@@ -120,7 +154,3 @@ ${g2o_SOURCE_DIR}/g2o/stuff/string_tools.cpp
 ${g2o_SOURCE_DIR}/g2o/stuff/property.cpp
 ${g2o_SOURCE_DIR}/g2o/stuff/property.h
 )
-include(GenerateExportHeader)
-generate_export_header(g2o)
-target_include_directories(g2o PUBLIC
-                           ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR})

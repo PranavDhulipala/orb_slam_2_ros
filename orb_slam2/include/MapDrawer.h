@@ -30,12 +30,11 @@
 
 namespace ORB_SLAM2
 {
-struct ORBParameters;
 
 class MapDrawer
 {
 public:
-    MapDrawer( Map* pMap, ORBParameters& parameters);
+    MapDrawer(Map* pMap, const string &strSettingPath);
 
     Map* mpMap;
 

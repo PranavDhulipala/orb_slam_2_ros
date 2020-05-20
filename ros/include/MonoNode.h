@@ -18,8 +18,8 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ORBSLAM2_ROS_MONONODE_H_
-#define ORBSLAM2_ROS_MONONODE_H_
+#ifndef ORB_SLAM2_ROS_MONONODE_H_
+#define ORB_SLAM2_ROS_MONONODE_H_
 
 #include <iostream>
 #include <algorithm>
@@ -40,7 +40,7 @@
 class MonoNode : public Node
 {
   public:
-    MonoNode (const ORB_SLAM2::System::eSensor sensor, ros::NodeHandle &node_handle, image_transport::ImageTransport &image_transport);
+    MonoNode (ORB_SLAM2::System* pSLAM, ros::NodeHandle &node_handle, image_transport::ImageTransport &image_transport);
     ~MonoNode ();
     void ImageCallback (const sensor_msgs::ImageConstPtr& msg);
 
@@ -48,4 +48,4 @@ class MonoNode : public Node
     image_transport::Subscriber image_subscriber;
 };
 
-#endif //ORBSLAM2_ROS_MONONODE_H_
+#endif //ORB_SLAM2_MONONODE_H_

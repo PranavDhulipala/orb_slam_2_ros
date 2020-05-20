@@ -24,10 +24,6 @@
 
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
-#include<opencv2/imgproc/types_c.h>
-
-#include <ros/ros.h>
-#include <sensor_msgs/CameraInfo.h>
 
 #include"Viewer.h"
 #include"FrameDrawer.h"
@@ -54,12 +50,12 @@ class LocalMapping;
 class LoopClosing;
 class System;
 
-struct ORBParameters;
 class Tracking
 {  
 
 public:
-Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const int sensor, ORBParameters& parameters);
+    Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
+             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
@@ -222,12 +218,6 @@ protected:
     bool mbRGB;
 
     list<MapPoint*> mlpTemporalPoints;
-    // These parameters are for the ORB features extractor
-    int nFeatures;
-    float fScaleFactor;
-    int nLevels;
-    int fIniThFAST;
-    int fMinThFAST;
 };
 
 } //namespace ORB_SLAM

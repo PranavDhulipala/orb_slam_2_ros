@@ -9,38 +9,43 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "Stereo");
     ros::start();
 
-    if(argc > 1) {
-        ROS_WARN ("Arguments supplied via command line are neglected.");
+    if(argc != 3)
+    {
+        ROS_ERROR ("Path to vocabulary and path to settings need to be set.");
+        ros::shutdown();
+        return 1;
     }
 
+    // Create SLAM system. It initializes all system threads and gets ready to process frames.
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO);
     ros::NodeHandle node_handle;
     image_transport::ImageTransport image_transport (node_handle);
 
-    // initialize
-    StereoNode node (ORB_SLAM2::System::STEREO, node_handle, image_transport);
+    message_filters::Subscriber<sensor_msgs::Image> left_sub(node_handle, "image_left/image_color_rect", 1);
+    message_filters::Subscriber<sensor_msgs::Image> right_sub(node_handle, "image_right/image_color_rect", 1);
+    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
+    message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
 
-    node.Init();
+    // initilaize
+    StereoNode node (&SLAM, node_handle, image_transport);
+
+    // register callbacks
+    sync.registerCallback(boost::bind(&StereoNode::ImageCallback, &node,_1,_2));
 
     ros::spin();
+
+    // Stop all threads
+    SLAM.Shutdown();
 
     return 0;
 }
 
 
-StereoNode::StereoNode (const ORB_SLAM2::System::eSensor sensor, ros::NodeHandle &node_handle, image_transport::ImageTransport &image_transport) : Node (sensor, node_handle, image_transport) {
-    left_sub_ = new message_filters::Subscriber<sensor_msgs::Image> (node_handle, "image_left/image_color_rect", 1);
-    right_sub_ = new message_filters::Subscriber<sensor_msgs::Image> (node_handle, "image_right/image_color_rect", 1);
-    camera_info_topic_ = "image_left/camera_info";
-
-    sync_ = new message_filters::Synchronizer<sync_pol> (sync_pol(10), *left_sub_, *right_sub_);
-    sync_->registerCallback(boost::bind(&StereoNode::ImageCallback, this, _1, _2));
+StereoNode::StereoNode (ORB_SLAM2::System* pSLAM, ros::NodeHandle &node_handle, image_transport::ImageTransport &image_transport) : Node (pSLAM, node_handle, image_transport) {
 }
 
 
 StereoNode::~StereoNode () {
-    delete left_sub_;
-    delete right_sub_;
-    delete sync_;
 }
 
 
@@ -63,7 +68,7 @@ void StereoNode::ImageCallback (const sensor_msgs::ImageConstPtr& msgLeft, const
 
   current_frame_time_ = msgLeft->header.stamp;
 
-  orb_slam_->TrackStereo(cv_ptrLeft->image, cv_ptrRight->image, cv_ptrLeft->header.stamp.toSec());
+  orb_slam_->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
 
   Update ();
 }
