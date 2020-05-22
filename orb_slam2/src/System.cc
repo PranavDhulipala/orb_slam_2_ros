@@ -59,7 +59,8 @@ System::System(const string &strVocFile, const eSensor sensor, ORBParameters& pa
 
     mpVocabulary = new ORBVocabulary();
  //try to load from the binary file
-    bool bVocLoad = mpVocabulary->loadFromBinFile(strVocFile+".bin");
+    //bool bVocLoad = mpVocabulary->loadFromBinFile(strVocFile+".bin");
+    bool bVocLoad = false;
 
     if(!bVocLoad)
     {
