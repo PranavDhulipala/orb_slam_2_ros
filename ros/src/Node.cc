@@ -278,12 +278,12 @@ void Node::LoadOrbParameters (ORB_SLAM2::ORBParameters& parameters) {
   }
   node_handle_.param(name_of_node_ + "/Viewer/width", parameters.width, static_cast<float>(640));
   node_handle_.param(name_of_node_ + "/Viewer/height", parameters.height, static_cast<float>(480));
-  // node_handle_.param(name_of_node_ + "/Viewer/keyFrameSize", parameters.keyFrameSize, static_cast<float>(0.05));
-  // node_handle_.param(name_of_node_ + "/Viewer/keyFrameLineWidth", parameters.keyFrameLineWidth, static_cast<float>(1));
-  // node_handle_.param(name_of_node_ + "/Viewer/graphLineWidth", parameters.graphLineWidth, static_cast<float>(0.9));
-  // node_handle_.param(name_of_node_ + "/Viewer/pointSize", parameters.pointSize, static_cast<float>(2));
-  // node_handle_.param(name_of_node_ + "/Viewer/cameraSize", parameters.cameraSize, static_cast<float>(0.08));
-  // node_handle_.param(name_of_node_ + "/Viewer/cameraLineWidth", parameters.cameraLineWidth, static_cast<float>(3));
+  node_handle_.param(name_of_node_ + "/Viewer/keyFrameSize", parameters.keyFrameSize, static_cast<float>(0.05));
+  node_handle_.param(name_of_node_ + "/Viewer/keyFrameLineWidth", parameters.keyFrameLineWidth, static_cast<float>(1));
+  node_handle_.param(name_of_node_ + "/Viewer/graphLineWidth", parameters.graphLineWidth, static_cast<float>(0.9));
+  node_handle_.param(name_of_node_ + "/Viewer/pointSize", parameters.pointSize, static_cast<float>(2));
+  node_handle_.param(name_of_node_ + "/Viewer/cameraSize", parameters.cameraSize, static_cast<float>(0.08));
+  node_handle_.param(name_of_node_ + "/Viewer/cameraLineWidth", parameters.cameraLineWidth, static_cast<float>(3));
   node_handle_.param(name_of_node_ + "/Viewer/viewpointX", parameters.viewpointX, static_cast<float>(0));
   node_handle_.param(name_of_node_ + "/Viewer/viewpointY", parameters.viewpointY, static_cast<float>(-0.7));
   node_handle_.param(name_of_node_ + "/Viewer/viewpointZ", parameters.viewpointZ, static_cast<float>(-1.8));
