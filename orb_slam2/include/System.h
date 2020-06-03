@@ -22,23 +22,28 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include <string>
-#include <thread>
-#include <unistd.h>
-#include <opencv2/core/core.hpp>
-#include <sys/resource.h>
 
+#include<string>
+#include<thread>
+#include <io.h>
+#include<opencv2/core/core.hpp>
 
 #include "Tracking.h"
 #include "FrameDrawer.h"
+#include "MapDrawer.h"
 #include "Map.h"
 #include "LocalMapping.h"
 #include "LoopClosing.h"
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
+#include "Viewer.h"
+#include "Converter.h"
+
 
 namespace ORB_SLAM2
 {
+
+class Viewer;
 class FrameDrawer;
 class Map;
 class Tracking;
@@ -46,7 +51,6 @@ class LocalMapping;
 class LoopClosing;
 
 struct ORBParameters;
-
 class System
 {
 public:
@@ -59,9 +63,16 @@ public:
 
 public:
 
+	Map* getMap() {
+		return mpMap;
+	}
+
+	Tracking* getTracker(){ return mpTracker; }
+	LocalMapping* getLocalMapping(){ return mpLocalMapper; }
+	LoopClosing* getLoopClosing(){ return mpLoopCloser; }
+
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string strVocFile, const eSensor sensor, ORBParameters& parameters,
-           const std::string & map_file = "", bool load_map = false); // map serialization addition
+    System(const string &strVocFile, const eSensor sensor, ORBParameters& parameters, const std::string & map_file = "", bool load_map = false, const bool bUseViewer = true); // map serialization addition
 
     // Process the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -115,13 +126,13 @@ public:
     // TODO: Save/Load functions
     // SaveMap(const string &filename);
     // LoadMap(const string &filename);
-
     void SetMinimumKeyFrames (int min_num_kf);
 
+    void SaveMap();
+    
     bool SaveMap(const string &filename);
 
     cv::Mat GetCurrentPosition ();
-
     // Information from most recent processed frame
     // You can call this right after TrackMonocular (or stereo or RGBD)
     int GetTrackingState();
@@ -132,16 +143,13 @@ public:
 
     std::vector<MapPoint*> GetAllMapPoints();
 
-private:
-    bool SetCallStackSize (const rlim_t kNewStackSize);
 
-    rlim_t GetCurrentCallStackSize ();
-
-    // This stops local mapping thread (map building) and performs only camera tracking.
     void ActivateLocalizationMode();
 
     // This resumes local mapping thread and performs SLAM again.
     void DeactivateLocalizationMode();
+
+private:
 
     bool LoadMap(const string &filename);
 
@@ -175,12 +183,17 @@ private:
     // a pose graph optimization and full bundle adjustment (in a new thread) afterwards.
     LoopClosing* mpLoopCloser;
 
+    // The viewer draws the map and the current camera pose. It uses Pangolin.
+    Viewer* mpViewer;
+
     FrameDrawer* mpFrameDrawer;
+    MapDrawer* mpMapDrawer;
 
     // System threads: Local Mapping, Loop Closing, Viewer.
     // The Tracking thread "lives" in the main execution thread that creates the System object.
     std::thread* mptLocalMapping;
     std::thread* mptLoopClosing;
+    std::thread* mptViewer;
 
     // Reset flag
     std::mutex mMutexReset;
@@ -199,7 +212,6 @@ private:
 
     // Current position
     cv::Mat current_position_;
-
 };
 
 }// namespace ORB_SLAM

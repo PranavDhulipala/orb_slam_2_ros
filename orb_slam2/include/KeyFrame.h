@@ -232,7 +232,7 @@ protected:
     std::mutex mMutexPose;
     std::mutex mMutexConnections;
     std::mutex mMutexFeatures;
-
+    
 // map serialization addition
 public:
     KeyFrame(); // Default constructor for serialization, need to deal with const member

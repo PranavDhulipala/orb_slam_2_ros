@@ -40,6 +40,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/PoseStamped.h>
+#include "geometry_msgs/PoseArray.h"
 #include <sensor_msgs/CameraInfo.h>
 
 #include "System.h"
@@ -68,6 +69,7 @@ class Node
     void ParamsChangedCallback(orb_slam2_ros::dynamic_reconfigureConfig &config, uint32_t level);
     bool SaveMapSrv (orb_slam2_ros::SaveMap::Request &req, orb_slam2_ros::SaveMap::Response &res);
     void LoadOrbParameters (ORB_SLAM2::ORBParameters& parameters);
+    void publish(int frame_id);
 
     tf::Transform TransformFromMat (cv::Mat position_mat);
     sensor_msgs::PointCloud2 MapPointsToPointCloud (std::vector<ORB_SLAM2::MapPoint*> map_points);
@@ -77,6 +79,10 @@ class Node
     image_transport::Publisher rendered_image_publisher_;
     ros::Publisher map_points_publisher_;
     ros::Publisher pose_publisher_;
+    ros::Publisher pub_pts_and_pose;
+	  ros::Publisher pub_all_kf_and_pts;
+    ros::Subscriber sub;
+
 
     ros::ServiceServer service_server_;
 
@@ -94,7 +100,10 @@ class Node
     bool publish_pointcloud_param_;
     bool publish_tf_param_;
     bool publish_pose_param_;
+    bool pub_all_pts = false;
+    int pub_count = 0;
     int min_observations_per_point_;
+    int frame_id_;
 };
 
 #endif //ORBSLAM2_ROS_NODE_H_

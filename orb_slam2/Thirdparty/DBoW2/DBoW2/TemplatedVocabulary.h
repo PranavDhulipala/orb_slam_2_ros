@@ -1,3 +1,4 @@
+  
 /**
  * This is a modified version of TemplatedVocabulary.h from DBoW2 (see below).
  * Added functions: Save and Load from text files without using cv::FileStorage.

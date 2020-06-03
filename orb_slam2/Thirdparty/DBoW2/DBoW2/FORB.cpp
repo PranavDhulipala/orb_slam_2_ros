@@ -13,7 +13,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include <stdint-gcc.h>
+#include <stdint.h>
 
 #include "FORB.h"
 
@@ -23,7 +23,7 @@ namespace DBoW2 {
 
 // --------------------------------------------------------------------------
 
-const int FORB::L=32;
+//const int FORB::L=32;
 
 void FORB::meanValue(const std::vector<FORB::pDescriptor> &descriptors,
   FORB::TDescriptor &mean)

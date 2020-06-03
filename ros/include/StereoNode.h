@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ORBSLAM2_ROS_STEREONODE_H_
+#define ORBSLAM2_ROS_STEREONODE_H_
 
 #include <iostream>
 #include <algorithm>
@@ -38,3 +39,4 @@ private:
     int resize_vertical;
 };
 
+#endif //ORBSLAM2_ROS_STEREONODE_H_
